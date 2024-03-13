@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "openai": "^4.28.4"
+  },
+  "name": "chat-db",
+  "description": "��#\u0000 \u0000c\u0000h\u0000a\u0000t\u0000-\u0000d\u0000b\u0000\r\u0000 \u0000",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tmp009/chat-db.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tmp009/chat-db/issues"
+  },
+  "homepage": "https://github.com/tmp009/chat-db#readme"
+}
