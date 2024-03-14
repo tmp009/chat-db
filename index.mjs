@@ -78,18 +78,20 @@ async function main() {
             switch (cmdName) {
 
                 case 'exit':                    
-                process.exit(0);
-                break;
+                    process.exit(0);
 
                 case 'dump':                    
-                    response = await runOpenAI('anna kaikki tila json-muodossa', {'type':'json_object'})
+                    response = await getState();
                     console.log(response)
 
                     break;
 
-                case 'reset': // save current state and reset the chat                    
-                    response = await runOpenAI('anna kaikki tila json-muodossa', {'type':'json_object'})
-                    await fs.writeFile(statePath, response, {encoding:'utf-8'})
+                case 'save':
+                    await saveState();
+                    break
+
+                case 'reset': // save the current state and reset the chat                    
+                    await saveState();
                     msgs = []
                     jsonState = response;
 
@@ -161,6 +163,16 @@ async function runOpenAI(message, format={'type':'text'}) {
             }
         }
     }
+}
+
+async function getState() {
+    const response = await runOpenAI('anna kaikki tila json-muodossa', {'type':'json_object'});
+    return response;
+}
+
+async function saveState() {
+    const state = await getState()
+    await fs.writeFile(statePath, state, {encoding:'utf-8'})
 }
 
 main()
