@@ -76,24 +76,40 @@ async function main() {
             let response;
 
             switch (cmdName) {
-
                 case 'exit':                    
                     process.exit(0);
+
+                case 'clear':
+                    await fs.writeFile(commandPath, JSON.stringify({}), {encoding:'utf-8'});
+                    jsonCmds = {};
+                    msgs = [];
+                    
+                    break;
+
+                case 'new':
+                    msgs = [];
+                    break;
+
+                case 'commands':
+                    printUserCommands();
+                    break;
+
+                case 'help':
+                    printHelpText();
+                    break;
 
                 case 'dump':                    
                     response = await getState();
                     console.log(response)
-
                     break;
 
                 case 'save':
                     await saveState();
-                    break
+                    break;
 
                 case 'reset': // save the current state and reset the chat                    
-                    await saveState();
+                    await saveState();  
                     msgs = []
-                    jsonState = response;
 
                     break;
             
@@ -171,8 +187,30 @@ async function getState() {
 }
 
 async function saveState() {
-    const state = await getState()
-    await fs.writeFile(statePath, state, {encoding:'utf-8'})
+    jsonState = await getState();
+    await fs.writeFile(statePath, jsonState, {encoding:'utf-8'})
+}
+
+function printHelpText() {
+    const cmdHelp = [
+        {command: 'exit', description: 'sulje ohjelma'},
+        {command: 'dump', description: 'näytää tila JSON-muodossa'},
+        {command: 'reset', description: 'tallentaa tila ja aloittaa uuden viestiketju'},
+        {command: 'save', description: 'tallentaa tila'},
+        {command: 'help', description: 'näyttää aputeksti'},
+        {command: 'new', description: 'aloita uusi viestiketju'},
+        {command: 'clear', description: 'poistaa kaikki luodut kommento ja aloita uusi viestiketju'}
+    ].sort((a,b)=>a.command.localeCompare(b.command))
+
+    console.log("Scriptbot kommentot:\n")
+    
+    cmdHelp.forEach((cmd)=>console.log(`${cmd.command}: ${cmd.description}`))
+}
+
+function printUserCommands() {
+    for (const [name, description] of Object.entries(jsonCmds)) {
+        console.log(`${name}: ${description}`)
+    }
 }
 
 main()
