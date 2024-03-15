@@ -90,7 +90,7 @@ async function main() {
                         jsonCmds = {};
                         msgs = [];
     
-                        console.log('Ok. Kaikki luodut kommento ja tila ovat poistettu. Aloitetaan uusi viestiketju.')
+                        console.log('Ok. Kaikki luodut komennot ja tila ovat poistettu. Aloitetaan uusi viestiketju.')
                         
                         break;
     
