@@ -9,7 +9,7 @@ const openai = new OpenAI();
 const statePath = 'state.json';
 const commandPath = 'commands.json';
 
-let jsonState = {data:{}};
+let jsonState = { data: {} };
 let jsonCmds = {};
 let msgs = [];
 
@@ -22,7 +22,7 @@ async function main() {
     } catch (error) {
         if (error.code === 'ENOENT') {
 
-            await fs.writeFile(statePath, JSON.stringify({data:{}}));
+            await fs.writeFile(statePath, JSON.stringify({ data: {} }));
         } else {
             console.error('An error occurred:', error);
         }
@@ -41,12 +41,17 @@ async function main() {
         }
     }
 
+    const logo = await fs.readFile("logo.txt", 'utf-8');
+    console.log(logo);
+
     while (true) {
+        console.log("");
+
         const regex = /^(?:(!{1,2})([\p{L}\d_]+))?(?:\s+(.*))?/u;
         const input = (await inquirer.prompt([{
-            type:'input',
+            type: 'input',
             name: 'cmd',
-            prefix:'>',
+            prefix: '>',
             message: ' '
         }])).cmd.trim();
 
@@ -57,9 +62,9 @@ async function main() {
 
         if (input.length == 0) {
             continue
-        } else if (cmdPrefix == '!!') { // update command           
+        } else if (cmdPrefix == '!!') { // update command
             if (jsonCmds[cmdName]) {
-                console.log(`Komento ${cmdName} tarkoittaa nyt: "${jsonCmds[cmdName]}"\nAnna uusi määritelmä:\n`);
+                console.log(`Komento '${cmdName}' tarkoittaa nyt: "${jsonCmds[cmdName]}"\nAnna uusi määritelmä:\n`);
 
                 const updateCmd = (await inquirer.prompt([{
                     type: 'input',
@@ -70,7 +75,7 @@ async function main() {
 
                 if (updateCmd.length > 0) {
                     jsonCmds[cmdName] = updateCmd;
-                    await fs.writeFile(commandPath, JSON.stringify(jsonCmds), { encoding:'utf-8' })
+                    await fs.writeFile(commandPath, JSON.stringify(jsonCmds), { encoding: 'utf-8' })
                     console.log(`Ok, komento !${cmdName} päivitetty`)
                 }
             } else {
@@ -81,70 +86,70 @@ async function main() {
 
             try {
                 switch (cmdName) {
-                    case 'exit':                    
+                    case 'exit':
                         process.exit(0);
-    
+
                     case 'clear':
-                        await fs.writeFile(commandPath, JSON.stringify({}), { encoding:'utf-8' });
-                        await saveState({data:{}})
+                        await fs.writeFile(commandPath, JSON.stringify({}), { encoding: 'utf-8' });
+                        await saveState({ data: {} })
                         jsonCmds = {};
                         msgs = [];
-    
+
                         console.log('Ok. Kaikki luodut komennot ja tila ovat poistettu. Aloitetaan uusi viestiketju.')
-                        
+
                         break;
-    
+
                     case 'new':
                         msgs = [];
-                        await saveState({data:{}})
+                        await saveState({ data: {} })
                         console.log('Ok, tila on poistettu. Aloitetaan uusi viestiketju.')
                         break;
-    
+
                     case 'commands':
                         printUserCommands();
                         break;
-    
+
                     case 'help':
                         printHelpText();
                         break;
-    
-                    case 'dump':                    
+
+                    case 'dump':
                         response = await getState();
                         console.log(response)
                         break;
-    
+
                     case 'save':
                         await saveState();
                         console.log('Tila on tallenettu!')
                         break;
-    
-                    case 'reset': // save the current state and reset the chat                    
-                        await saveState();  
+
+                    case 'reset': // save the current state and reset the chat
+                        await saveState();
                         msgs = []
                         console.log('Ok, aloitetaan uusi viestiketju.')
-    
+
                         break;
-                
+
                     default:
                         if (!jsonCmds[cmdName]) {
                             console.log(`En tiedä mitä ${cmdName} tarkoittaa, kirjoita se minulle:`);
-    
+
                             const newCmd = (await inquirer.prompt([{
                                 type: 'input',
                                 name: 'cmd',
                                 prefix: '$',
                                 message: ' '
                             }])).cmd.trim();
-    
+
                             if (newCmd.length > 0) {
                                 jsonCmds[cmdName] = newCmd;
-                                await fs.writeFile(commandPath, JSON.stringify(jsonCmds), { encoding:'utf-8' })
-                                console.log(`Ok, komento !${cmdName} luotu.`)
+                                await fs.writeFile(commandPath, JSON.stringify(jsonCmds), { encoding: 'utf-8' })
+                                console.log(`Ok, komento !${cmdName} luotu, suoritetaan se samantien:`)
                             } else {
                                 break;
                             }
                         }
-    
+
                         response = await runOpenAI("pyydän: " + jsonCmds[cmdName] + cmdContent)
                         console.log(response)
                         break;
@@ -159,9 +164,9 @@ async function main() {
             try {
                 const response = await runOpenAI(input);
                 await saveState();
-        
+
                 console.log(response);
-                
+
             } catch (error) {
                 if (!error.exceededRetries) {
                     console.error(error)
@@ -172,17 +177,17 @@ async function main() {
 }
 
 
-async function runOpenAI(message, format = { 'type':'text' }) {
-    msgs.push({ role:'user', content:message });
-            
+async function runOpenAI(message, format = { 'type': 'text' }) {
+    msgs.push({ role: 'user', content: message });
+
     const messages = [
-        { role:'system', content: 'Olet käsikirjoitusprosessin avustaja. Pidät yllä tietokantaa käsikirjoituksen henkilöistä, tapahtumista, paikoista. Esität tarkentavia kysymyksiä syötteisiin, älä oleta mitään tai kehittele ajatuksia jos ei pyydetä. Älä kysy tarkentavia kysymyksiä ellei erikseen pyydetä. Oletuksena vastaat vain "ok" paitsi jos esitetään kysymystä' },
-        { role:'system', content: 'json-tiedot säilytetään pääavaimella "data" jossa on json-olio, joka sisältä taulukkoa henkilöistä, tapahtumista, paikoista, ja tarvittaessa muita tiedot.' },
-        { role:'system', content: 'tila JSON-muodossa: ' + jsonState }
+        { role: 'system', content: 'Olet käsikirjoitusprosessin avustaja. Kirjaat ylös tietokantaasi tietoja käsikirjoituksen henkilöistä, tapahtumista, paikoista ja niin edelleen. Oletuksena olet vain kirjuri ja vastaat vain "ok". Ainoastaan jos esitetään kysymys tai sanotaan esimerkiksi "anna ehdotus" tai "keksi mitä sanoo" jne toimit tämän mukaan.' },
+        { role: 'system', content: 'json-tiedot säilytetään pääavaimella "data" jossa on json-olio, joka sisältää taulukkoa henkilöistä, tapahtumista, paikoista, ja tarvittaessa muita tiedot.' },
+        { role: 'system', content: 'tila JSON-muodossa: ' + jsonState }
     ]
 
     if (!format.type['json_object']) {
-        messages.push({ role:'system', content: 'Älä palauta dataa JSON-muodossa vaan antaa se tavallisina tekstinä' })
+        messages.push({ role: 'system', content: 'Älä palauta dataa JSON-muodossa vaan antaa se tavallisina tekstinä' })
     }
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -193,7 +198,7 @@ async function runOpenAI(message, format = { 'type':'text' }) {
                 response_format: format
             });
 
-            msgs.push({ role:'assistant', content:completion.choices[0].message.content })
+            msgs.push({ role: 'assistant', content: completion.choices[0].message.content })
 
             return completion.choices[0].message.content
 
@@ -212,7 +217,7 @@ async function runOpenAI(message, format = { 'type':'text' }) {
 }
 
 async function getState() {
-    const response = await runOpenAI('anna kaikki tila json-muodossa', { 'type':'json_object' });
+    const response = await runOpenAI('anna kaikki tila json-muodossa', { 'type': 'json_object' });
     return response;
 }
 
@@ -222,24 +227,23 @@ async function saveState(state) {
     } else {
         jsonState = JSON.stringify(state);
     }
-    await fs.writeFile(statePath, jsonState, { encoding:'utf-8' });
+    await fs.writeFile(statePath, jsonState, { encoding: 'utf-8' });
 }
 
 function printHelpText() {
     const cmdHelp = [
+        { command: 'commands', description: 'Lista luoduista komennoista' },
+        { command: 'reset', description: 'Aloita uusi keskustelu säilyttäen kaikki syöte' },
+        { command: 'new', description: 'Aloita uusi keskustelu ja poista kaikki syöte, mutta säilytä komennot' },
+        { command: 'clear', description: 'Aloita uusi keskustelu ja poista kaikki syöte ja komennot' },
         { command: 'exit', description: 'Sulje ohjelma' },
-        { command: 'dump', description: 'Näytää tila JSON-muodossa' },
-        { command: 'reset', description: 'Tallentaa tila ja aloittaa uuden viestiketju' },
-        { command: 'save', description: 'Tallentaa tila' },
-        { command: 'help', description: 'Näyttää aputeksti' },
-        { command: 'new', description: 'Poistaa tila ja aloita uusi viestiketju' },
-        { command: 'clear', description: 'Poistaa kaikki luodut komento ja tila ja aloita uusi viestiketju' },
-        { command: 'commands', description: 'Lista kaikki itse luodut komentoja' }
-    ].sort((a, b) => a.command.localeCompare(b.command))
+        { command: 'dump', description: 'Näytää tilan JSON-muodossa' },
+        { command: 'save', description: 'Tallenna tila' }
+    ]
 
-    console.log("Scriptbot kommentot:\n")
-    
-    cmdHelp.forEach((cmd)=>console.log(`${cmd.command}: ${cmd.description}`))
+    console.log("Komennot jotka aina saatavilla:\n")
+
+    cmdHelp.forEach((cmd) => console.log(`${cmd.command}: ${cmd.description}`))
 }
 
 function printUserCommands() {

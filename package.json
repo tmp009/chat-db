@@ -5,7 +5,7 @@
     "openai": "^4.28.4"
   },
   "name": "chat-db",
-  "description": "#\u0000 \u0000c\u0000h\u0000a\u0000t\u0000-\u0000d\u0000b\u0000\r\u0000 \u0000",
+  "description": "chat-db app",
   "version": "1.0.0",
   "type": "module",
   "main": "index.mjs",
