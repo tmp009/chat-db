@@ -1,4 +1,3 @@
-// Import required modules
 import 'dotenv/config';
 import inquirer from 'inquirer';
 import { OpenAI } from 'openai';
@@ -10,7 +9,6 @@ inquirer.registerPrompt(
     inquirerCommandPrompt
 )
 
-// Constants
 const maxRetries = process.env.OPENAI_RETRY || 3;
 const openai = new OpenAI();
 const statePath = 'state.json';
@@ -19,16 +17,13 @@ const commandPath = 'commands.json';
 // Initialize state variables
 let jsonState, jsonCmds, msgs = [];
 
-// Main function
 async function main() {
     try {
         // Initialize state variables from files
         jsonState = JSON.parse(await readFileIfExists(statePath)) || { data: {} };
         jsonCmds = JSON.parse(await readFileIfExists(commandPath)) || {};
 
-        // Read logo file and display
-        const logo = await fs.readFile("logo.txt", 'utf-8');
-        console.log(logo);
+        await printHelpText();
 
         // Command processing loop
         while (true) {
@@ -62,7 +57,7 @@ async function processCommand(input) {
     const regex = /^(?:(!{1,2})([\p{L}\d_]+))?(?:\s+(.*))?/u;
     const cmd = input.match(regex);
     const cmdPrefix = cmd[1] || '';
-    const cmdName = cmd[2] || '';
+    const cmdName = cmd[2]?.toLowerCase() || '';
     const cmdContent = cmd[3] || '';
 
     if (input.length == 0) {
@@ -95,7 +90,7 @@ async function processCommand(input) {
 
             if (!builtRun) { // handle user commands
                 if (!jsonCmds[cmdName]) {
-                    console.log(`En tiedä mitä ${cmdName} tarkoittaa, kirjoita se minulle:`);
+                    console.log(`En tiedä mitä ${cmdName} tarkoittaa, kirjoita se minulle (mikäli et halua luoda komentoa, paina vain enter)`);
 
                     const newCmd = (await inquirer.prompt([{
                         type: 'command',
@@ -152,7 +147,7 @@ async function processBuiltInCommand(cmdName) {
             printUserCommands();
             break;
         case 'help':
-            printHelpText();
+            await printHelpText();
             break;
         case 'dump':
             await dumpState();
@@ -214,20 +209,21 @@ function printUserCommands() {
 }
 
 // Print help text
-function printHelpText() {
+async function printHelpText() {
+    // Read logo file and display
+    const logo = await fs.readFile("logo.txt", 'utf-8');
+    console.log(logo);
+
     const cmdHelp = [
         { command: 'commands', description: 'Lista luoduista komennoista' },
-        { command: 'reset', description: 'Aloita uusi keskustelu säilyttäen kaikki syöte' },
-        { command: 'new', description: 'Aloita uusi keskustelu ja poista kaikki syöte, mutta säilytä komennot' },
-        { command: 'clear', description: 'Aloita uusi keskustelu ja poista kaikki syöte ja komennot' },
-        { command: 'exit', description: 'Sulje ohjelma' },
-        { command: 'dump', description: 'Näytää tilan JSON-muodossa' },
-        { command: 'save', description: 'Tallenna tila' }
+        { command: 'reset', description: 'Aloita uusi keskustelu siten, että kaikki tämän hetkinen tila ja kommennot siirretään uuteen keskusteluun.' },
+        { command: 'new', description: 'Aloita uusi keskustelu ja poista kaikki syöte, mutta säilytä komennot. Eli !komennot jäävät, mutta henkilöt jne poistuvat.' },
+        { command: 'clear', description: 'Aloita uusi keskustelu ja poista kaikki syöte ja komennot. Eli täydellinen tyhjennys kaikelle.' },
     ];
 
     console.log("Käytettävissä olevat komennot:\n");
 
-    cmdHelp.forEach((cmd) => console.log(`${cmd.command}: ${cmd.description}`));
+    cmdHelp.forEach((cmd) => console.log(`!${cmd.command}: ${cmd.description}`));
 }
 
 // Get current state
