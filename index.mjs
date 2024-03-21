@@ -108,8 +108,7 @@ async function processCommand(input) {
                     }
                 }
 
-                response = await runOpenAI("pyydän: " + jsonCmds[cmdName] + cmdContent)
-                console.log(response)
+                await runOpenAI("pyydän: " + jsonCmds[cmdName] + cmdContent)
             }
         } catch (error) {
             if (!error.exceededRetries) {
@@ -119,10 +118,8 @@ async function processCommand(input) {
 
     } else {
         try {
-            const response = await runOpenAI(input);
-            await saveState();
-
-            console.log(response);
+            await runOpenAI(input);
+            saveState();
 
         } catch (error) {
             if (!error.exceededRetries) {
@@ -183,8 +180,8 @@ async function resetState() {
 
 // Dump state
 async function dumpState() {
-    const response = await getState();
-    console.log(response);
+    const parsedJson = JSON.parse(await getState());
+    console.log(JSON.stringify(parsedJson, null, 4));
 }
 
 // Reset chat
@@ -228,7 +225,7 @@ async function printHelpText() {
 
 // Get current state
 async function getState() {
-    const response = await runOpenAI('anna kaikki tila json-muodossa', { 'type': 'json_object' });
+    const response = await runOpenAI('anna kaikki tila json-muodossa', { 'type': 'json_object' }, false);
     return response;
 }
 
@@ -243,7 +240,8 @@ async function saveState(state = null) {
 }
 
 // Run OpenAI API to generate response
-async function runOpenAI(message, format = { 'type': 'text' }) {
+async function runOpenAI(message, format = { 'type': 'text' }, stream = true) {
+    let model = 'gpt-4-1106-preview'
     msgs.push({ role: 'user', content: message });
 
     const messages = [
@@ -252,21 +250,38 @@ async function runOpenAI(message, format = { 'type': 'text' }) {
         { role: 'system', content: 'tila JSON-muodossa: ' + JSON.stringify(jsonState) }
     ];
 
-    if (!format.type['json_object']) {
-        messages.push({ role: 'system', content: 'Älä palauta dataa JSON-muodossa vaan antaa se tavallisina tekstinä' });
+
+    if (format.type != 'json_object') {
+        model = 'gpt-4'
+        messages.push({ role: 'system', content: 'Älä palauta dataa JSON-muodossa vaan antaa se aina tavallisina tekstinä' });
     }
+
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             const completion = await openai.chat.completions.create({
                 messages: messages.concat(msgs),
-                model: 'gpt-4-1106-preview',
-                response_format: format
+                model: model,
+                response_format: format,
+                stream: stream
             });
 
-            msgs.push({ role: 'assistant', content: completion.choices[0].message.content });
+            if (stream) {
+                let response = "";
+                for await (const chunk of completion) {
+                    response += chunk.choices[0]?.delta?.content || ""
+                    process.stdout.write(chunk.choices[0]?.delta?.content || "");
+                }
+                
+                msgs.push({ role: 'assistant', content: response });
 
-            return completion.choices[0].message.content;
+                return
+            } else {
+                msgs.push({ role: 'assistant', content: completion.choices[0].message.content });
+    
+                return completion.choices[0].message.content;
+            }
+
 
         } catch (error) {
             if (attempt + 1 >= maxRetries) {
