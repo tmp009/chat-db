@@ -2,3 +2,4 @@ node_modules
 .env
 commands.json
 state.json
+history
