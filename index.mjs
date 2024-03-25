@@ -6,12 +6,12 @@ import inquirerCommandPrompt from 'inquirer-command-prompt';
 
 inquirerCommandPrompt.setConfig({
     history: {
-      save: true,
-      folder: 'history',
-      limit: 20,
-      blacklist: ['!exit']
+        save: true,
+        folder: 'history',
+        limit: 9999,
+        blacklist: ['!exit']
     }
-  })
+})
 
 inquirer.registerPrompt(
     'command',
@@ -261,7 +261,7 @@ async function runOpenAI(message, format = { 'type': 'text' }, stream = true) {
 
 
     if (format.type != 'json_object') {
-        model = 'gpt-4'
+        // model = 'gpt-4'
         messages.push({ role: 'system', content: 'Älä palauta dataa JSON-muodossa vaan antaa se aina tavallisina tekstinä' });
     }
 
